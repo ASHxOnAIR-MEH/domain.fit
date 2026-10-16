@@ -19,6 +19,12 @@ import {
   AlertCircle,
   Home,
   Baby,
+  Coins,
+  Gift,
+  Copy,
+  Check,
+  Award,
+  Sparkles,
 } from 'lucide-react';
 
 export default function ClientDashboardOverview() {
@@ -35,7 +41,30 @@ export default function ClientDashboardOverview() {
     glucoseLogs,
     logGlucose,
     bpLogs,
+    getCurrentUserWallet,
+    referralCodes,
+    fitcoinTransactions,
+    workoutCompletions,
+    fitcoinSettings,
+    addToast,
   } = useStore();
+
+  const wallet = getCurrentUserWallet();
+  const myReferralCode = referralCodes.find((rc) => rc.user_id === currentUser.id);
+  const myRecentFitcoinTxs = fitcoinTransactions.filter((tx) => tx.user_id === currentUser.id).slice(0, 3);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const referralCodeString = myReferralCode?.code || 'FIT2026';
+  const referralUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/login/client?ref=${referralCodeString}`
+    : `https://domainfit.io/login/client?ref=${referralCodeString}`;
+
+  const copyReferral = () => {
+    navigator.clipboard.writeText(referralUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+    addToast('Referral link copied to clipboard!', 'success');
+  };
 
   const [glucoseInput, setGlucoseInput] = useState<number>(110);
   const [readingType, setReadingType] = useState<'Fasting' | '2h Post-Meal' | 'Pre-Meal'>('Fasting');
@@ -119,6 +148,92 @@ export default function ClientDashboardOverview() {
             </button>
           </div>
         </div>
+
+        {/* FITCOIN REWARDS & REFERRAL QUICK HUB */}
+        <div
+          style={{
+            padding: '24px 28px',
+            borderRadius: 'var(--radius-xl)',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid rgba(183, 243, 74, 0.3)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '20px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          }}
+        >
+          {/* Balance & status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(183, 243, 74, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Coins size={26} color="var(--accent-primary)" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.4rem', fontWeight: 850, color: 'var(--accent-primary)' }}>
+                  {wallet.balance.toLocaleString()} FitCoins
+                </span>
+                <span className="badge badge-lime" style={{ fontSize: '0.7rem' }}>Verified Wallet</span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                Earned {wallet.total_earned} total • Complete workouts to earn +{fitcoinSettings.default_workout_reward.amount} 🪙
+              </p>
+            </div>
+          </div>
+
+          {/* Referral action & wallet link */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              <Gift size={14} color="var(--accent-primary)" />
+              <span style={{ fontSize: '0.82rem', color: '#fff', fontWeight: 600 }}>
+                Code: <strong>{referralCodeString}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={copyReferral}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent-primary)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '2px 4px',
+                }}
+                title="Copy referral link"
+              >
+                {copiedLink ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+            </div>
+
+            <Link href="/dashboard/wallet" className="btn-secondary btn-sm" style={{ gap: '6px' }}>
+              <span>View Ledger & History</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+
 
         {/* TOP CLINICAL METRIC CARDS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>

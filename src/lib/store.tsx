@@ -19,9 +19,18 @@ import {
   UserRole,
   GlucoseLog,
   BloodPressureLog,
+  FitCoinWallet,
+  FitCoinTransaction,
+  FitCoinTransactionType,
+  ReferralCode,
+  Referral,
+  WorkoutCompletion,
+  TrainerAssignment,
+  FitCoinSettings,
+  AuditLog,
 } from './types';
 
-// Initial Clinical Profiles
+// Initial Profiles (Clients, Trainers, Administrators)
 export const SEED_PROFILES: UserProfile[] = [
   {
     id: 'user-client-1',
@@ -31,6 +40,24 @@ export const SEED_PROFILES: UserProfile[] = [
     avatar_url: '/images/domainfit/home-fitness.jpg',
     phone: '+1 (555) 234-5678',
     created_at: '2026-08-10T10:00:00Z',
+  },
+  {
+    id: 'user-client-2',
+    email: 'anita.sharma@domainfit.io',
+    full_name: 'Anita Sharma',
+    role: 'client',
+    avatar_url: '/images/domainfit/nutrition.jpg',
+    phone: '+1 (555) 789-0123',
+    created_at: '2026-09-01T11:00:00Z',
+  },
+  {
+    id: 'user-client-3',
+    email: 'robert.kapoor@domainfit.io',
+    full_name: 'Robert Kapoor',
+    role: 'client',
+    avatar_url: '/images/domainfit/personal-coaching.jpg',
+    phone: '+1 (555) 890-1234',
+    created_at: '2026-09-15T14:30:00Z',
   },
   {
     id: 'user-trainer-1',
@@ -69,6 +96,256 @@ export const SEED_PROFILES: UserProfile[] = [
     created_at: '2025-12-01T08:00:00Z',
   },
 ];
+
+export const SEED_REFERRAL_CODES: ReferralCode[] = [
+  {
+    id: 'ref-code-1',
+    user_id: 'user-client-1',
+    code: 'ALEX2026',
+    is_active: true,
+    total_uses: 1,
+    created_at: '2026-08-10T10:00:00Z',
+  },
+  {
+    id: 'ref-code-2',
+    user_id: 'user-client-2',
+    code: 'ANITA2026',
+    is_active: true,
+    total_uses: 0,
+    created_at: '2026-09-01T11:00:00Z',
+  },
+  {
+    id: 'ref-code-3',
+    user_id: 'user-client-3',
+    code: 'ROBERT2026',
+    is_active: true,
+    total_uses: 0,
+    created_at: '2026-09-15T14:30:00Z',
+  },
+];
+
+export const SEED_REFERRALS: Referral[] = [
+  {
+    id: 'ref-row-1',
+    referrer_id: 'user-client-1',
+    referrer_name: 'Alex Carter',
+    referred_user_id: 'user-client-2',
+    referred_user_name: 'Anita Sharma',
+    referral_code: 'ALEX2026',
+    status: 'rewarded',
+    qualified_at: '2026-09-01T11:05:00Z',
+    rewarded_at: '2026-09-01T11:05:00Z',
+    referrer_reward_amount: 50,
+    referred_reward_amount: 25,
+    first_workout_bonus_rewarded: true,
+    created_at: '2026-09-01T11:00:00Z',
+  },
+];
+
+export const SEED_WALLETS: Record<string, FitCoinWallet> = {
+  'user-client-1': {
+    user_id: 'user-client-1',
+    balance: 145,
+    total_earned: 145,
+    total_spent: 0,
+    updated_at: '2026-10-15T09:00:00Z',
+  },
+  'user-client-2': {
+    user_id: 'user-client-2',
+    balance: 40,
+    total_earned: 40,
+    total_spent: 0,
+    updated_at: '2026-09-02T10:00:00Z',
+  },
+  'user-client-3': {
+    user_id: 'user-client-3',
+    balance: 30,
+    total_earned: 30,
+    total_spent: 0,
+    updated_at: '2026-09-16T12:00:00Z',
+  },
+  'user-trainer-1': { user_id: 'user-trainer-1', balance: 0, total_earned: 0, total_spent: 0, updated_at: '2026-01-15T09:00:00Z' },
+  'user-trainer-2': { user_id: 'user-trainer-2', balance: 0, total_earned: 0, total_spent: 0, updated_at: '2026-02-20T11:00:00Z' },
+  'user-trainer-3': { user_id: 'user-trainer-3', balance: 0, total_earned: 0, total_spent: 0, updated_at: '2026-03-01T08:30:00Z' },
+  'user-admin-1': { user_id: 'user-admin-1', balance: 0, total_earned: 0, total_spent: 0, updated_at: '2025-12-01T08:00:00Z' },
+};
+
+export const SEED_FITCOIN_TRANSACTIONS: FitCoinTransaction[] = [
+  {
+    id: 'tx-fc-1',
+    user_id: 'user-client-1',
+    user_name: 'Alex Carter',
+    amount: 50,
+    transaction_type: 'referral_reward',
+    source_reference: 'referral:ref-row-1:referrer',
+    idempotency_key: 'idemp-ref-row-1-referrer',
+    description: 'Referral reward for inviting Anita Sharma',
+    created_by: 'system',
+    creator_name: 'DomainFit Referral Engine',
+    created_at: '2026-09-01T11:05:00Z',
+  },
+  {
+    id: 'tx-fc-2',
+    user_id: 'user-client-1',
+    user_name: 'Alex Carter',
+    amount: 15,
+    transaction_type: 'workout_reward',
+    source_reference: 'workout:day-1',
+    idempotency_key: 'idemp-workout-day-1-user-client-1',
+    description: 'Completed: Day 1 Seated & Supported Muscle Activation',
+    created_by: 'user-client-1',
+    creator_name: 'Alex Carter',
+    created_at: '2026-10-14T10:00:00Z',
+  },
+  {
+    id: 'tx-fc-3',
+    user_id: 'user-client-1',
+    user_name: 'Alex Carter',
+    amount: 30,
+    transaction_type: 'trainer_session_reward',
+    source_reference: 'appointment:apt-1',
+    idempotency_key: 'idemp-apt-1',
+    description: 'Coaching session: Outstanding 14-day glycemic log compliance',
+    created_by: 'user-trainer-3',
+    creator_name: 'David Kim, RD, CDCES',
+    created_at: '2026-10-15T09:00:00Z',
+  },
+  {
+    id: 'tx-fc-4',
+    user_id: 'user-client-1',
+    user_name: 'Alex Carter',
+    amount: 50,
+    transaction_type: 'referral_reward',
+    source_reference: 'referral:welcome:user-client-1',
+    idempotency_key: 'idemp-welcome-user-client-1',
+    description: 'Welcome verification bonus on initial registration',
+    created_by: 'system',
+    creator_name: 'DomainFit Verification Engine',
+    created_at: '2026-08-10T10:05:00Z',
+  },
+  {
+    id: 'tx-fc-5',
+    user_id: 'user-client-2',
+    user_name: 'Anita Sharma',
+    amount: 25,
+    transaction_type: 'referral_reward',
+    source_reference: 'referral:ref-row-1:referred',
+    idempotency_key: 'idemp-ref-row-1-referred',
+    description: 'Welcome referral reward (Referred by Alex Carter)',
+    created_by: 'system',
+    creator_name: 'DomainFit Referral Engine',
+    created_at: '2026-09-01T11:05:00Z',
+  },
+  {
+    id: 'tx-fc-6',
+    user_id: 'user-client-2',
+    user_name: 'Anita Sharma',
+    amount: 15,
+    transaction_type: 'workout_reward',
+    source_reference: 'workout:anita-walk-1',
+    idempotency_key: 'idemp-workout-anita-walk-1',
+    description: 'Completed: Gentle Walking & Post-Meal Pacing',
+    created_by: 'user-client-2',
+    creator_name: 'Anita Sharma',
+    created_at: '2026-09-02T10:00:00Z',
+  },
+];
+
+export const SEED_WORKOUT_COMPLETIONS: WorkoutCompletion[] = [
+  {
+    id: 'wc-1',
+    client_id: 'user-client-1',
+    client_name: 'Alex Carter',
+    workout_id: 'day-1',
+    workout_title: 'Day 1: Seated & Supported Muscle Activation (Glucose Clearing)',
+    status: 'rewarded',
+    completed_at: '2026-10-14T10:00:00Z',
+    reward_amount: 15,
+    reward_transaction_id: 'tx-fc-2',
+  },
+];
+
+export const SEED_TRAINER_ASSIGNMENTS: TrainerAssignment[] = [
+  {
+    id: 'ta-1',
+    trainer_id: 'user-trainer-1',
+    trainer_name: 'Dr. Marcus Vance, PT, DPT',
+    client_id: 'user-client-1',
+    client_name: 'Alex Carter',
+    status: 'active',
+    created_at: '2026-08-10T10:00:00Z',
+  },
+  {
+    id: 'ta-2',
+    trainer_id: 'user-trainer-3',
+    trainer_name: 'David Kim, RD, CDCES',
+    client_id: 'user-client-1',
+    client_name: 'Alex Carter',
+    status: 'active',
+    created_at: '2026-08-12T11:00:00Z',
+  },
+  {
+    id: 'ta-3',
+    trainer_id: 'user-trainer-3',
+    trainer_name: 'David Kim, RD, CDCES',
+    client_id: 'user-client-2',
+    client_name: 'Anita Sharma',
+    status: 'active',
+    created_at: '2026-09-01T11:00:00Z',
+  },
+  {
+    id: 'ta-4',
+    trainer_id: 'user-trainer-1',
+    trainer_name: 'Dr. Marcus Vance, PT, DPT',
+    client_id: 'user-client-3',
+    client_name: 'Robert Kapoor',
+    status: 'active',
+    created_at: '2026-09-15T14:30:00Z',
+  },
+];
+
+export const DEFAULT_FITCOIN_SETTINGS: FitCoinSettings = {
+  referral_referrer_reward: { amount: 50, enabled: true },
+  referral_referred_reward: { amount: 25, enabled: true },
+  referral_eligibility_criteria: {
+    rule: 'verified_signup_and_first_login',
+    description: 'Verified email signup and successful initial sign in',
+  },
+  referral_first_workout_bonus: { amount: 20, enabled: true },
+  default_workout_reward: { amount: 15, enabled: true },
+  workout_requires_trainer_review: { value: false },
+  max_trainer_award_per_session: { amount: 50, enabled: true },
+  admin_manual_adjustments_enabled: { enabled: true, max_amount: 500 },
+  reward_expiry_policy: { enabled: false, days: 365 },
+  redemption_enabled: { enabled: false },
+};
+
+export const SEED_AUDIT_LOGS: AuditLog[] = [
+  {
+    id: 'audit-1',
+    actor_id: 'user-admin-1',
+    actor_name: 'Elena Vance (Clinical Director)',
+    action: 'INITIALIZE_FITCOIN_SETTINGS',
+    target_type: 'fitcoin_settings',
+    target_id: 'global',
+    new_state: DEFAULT_FITCOIN_SETTINGS,
+    reason: 'Initial platform FitCoin economy provisioning',
+    created_at: '2026-08-01T09:00:00Z',
+  },
+  {
+    id: 'audit-2',
+    actor_id: 'user-admin-1',
+    actor_name: 'Elena Vance (Clinical Director)',
+    action: 'POLICY_UPDATE',
+    target_type: 'fitcoin_settings',
+    target_id: 'max_trainer_award_per_session',
+    old_state: { amount: 100 },
+    new_state: { amount: 50 },
+    reason: 'Clinical governance: capped session awards to 50 FitCoins to safeguard economy',
+    created_at: '2026-09-01T10:00:00Z',
+  },
+];
+
 
 export const SEED_TRAINERS: TrainerProfile[] = [
   {
@@ -480,6 +757,7 @@ interface StoreContextType {
   currentUser: UserProfile;
   setCurrentUser: (user: UserProfile) => void;
   switchRole: (role: UserRole) => void;
+  allProfiles: UserProfile[];
   trainers: TrainerProfile[];
   programs: Program[];
   workoutPlan: WorkoutPlan;
@@ -515,16 +793,91 @@ interface StoreContextType {
   clientProfile: ClientProfile;
   updateClientProfile: (updates: Partial<ClientProfile>) => void;
   createProgram: (newProg: Omit<Program, 'id'>) => void;
+
+  // FITCOIN & ROLES
+  wallets: Record<string, FitCoinWallet>;
+  fitcoinTransactions: FitCoinTransaction[];
+  referralCodes: ReferralCode[];
+  referrals: Referral[];
+  workoutCompletions: WorkoutCompletion[];
+  trainerAssignments: TrainerAssignment[];
+  fitcoinSettings: FitCoinSettings;
+  auditLogs: AuditLog[];
+  getCurrentUserWallet: () => FitCoinWallet;
+  issueFitcoinTransaction: (params: {
+    userId: string;
+    amount: number;
+    type: FitCoinTransactionType;
+    sourceReference: string;
+    idempotencyKey: string;
+    description: string;
+    createdBy?: string;
+    creatorName?: string;
+    metadata?: Record<string, any>;
+  }) => { success: boolean; error?: string; transactionId?: string; newBalance?: number };
+  awardReferralReward: (referralId: string) => { success: boolean; error?: string };
+  completeWorkoutAndReward: (
+    workoutId: string,
+    workoutTitle: string
+  ) => { success: boolean; error?: string; status: WorkoutCompletion['status']; rewardAmount: number };
+  trainerReviewWorkout: (
+    completionId: string,
+    approved: boolean,
+    notes?: string
+  ) => { success: boolean; error?: string };
+  trainerAwardSessionFitcoins: (
+    appointmentId: string,
+    amount: number,
+    reason?: string
+  ) => { success: boolean; error?: string; transactionId?: string };
+  adminAdjustFitcoins: (
+    targetUserId: string,
+    amount: number,
+    reason: string
+  ) => { success: boolean; error?: string; transactionId?: string };
+  adminReverseFitcoinTransaction: (
+    transactionId: string,
+    reason: string
+  ) => { success: boolean; error?: string; transactionId?: string };
+  updateFitcoinSetting: <K extends keyof FitCoinSettings>(
+    key: K,
+    value: FitCoinSettings[K]
+  ) => { success: boolean; error?: string };
+  registerClient: (
+    fullName: string,
+    email: string,
+    password: string,
+    referralCodeInput?: string
+  ) => { success: boolean; error?: string; user?: UserProfile };
+  loginWithRole: (
+    email: string,
+    password: string,
+    requiredRole?: UserRole
+  ) => { success: boolean; error?: string; user?: UserProfile };
+  assignClientToTrainer: (clientId: string, trainerId: string) => { success: boolean; error?: string };
+  toggleTrainerStatus: (trainerUserId: string, isActive: boolean) => { success: boolean; error?: string };
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile>(SEED_PROFILES[0]);
+  const [allProfiles, setAllProfiles] = useState<UserProfile[]>(SEED_PROFILES);
   const [trainers] = useState<TrainerProfile[]>(SEED_TRAINERS);
   const [programs, setPrograms] = useState<Program[]>(SEED_PROGRAMS);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan>(SEED_WORKOUT_PLAN);
   const [mealPlan, setMealPlan] = useState<MealPlan>(SEED_MEAL_PLAN);
+
+  // FITCOIN & ROLE ACCESS STATE
+  const [wallets, setWallets] = useState<Record<string, FitCoinWallet>>(SEED_WALLETS);
+  const [fitcoinTransactions, setFitcoinTransactions] = useState<FitCoinTransaction[]>(SEED_FITCOIN_TRANSACTIONS);
+  const [referralCodes, setReferralCodes] = useState<ReferralCode[]>(SEED_REFERRAL_CODES);
+  const [referrals, setReferrals] = useState<Referral[]>(SEED_REFERRALS);
+  const [workoutCompletions, setWorkoutCompletions] = useState<WorkoutCompletion[]>(SEED_WORKOUT_COMPLETIONS);
+  const [trainerAssignments, setTrainerAssignments] = useState<TrainerAssignment[]>(SEED_TRAINER_ASSIGNMENTS);
+  const [fitcoinSettings, setFitcoinSettings] = useState<FitCoinSettings>(DEFAULT_FITCOIN_SETTINGS);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(SEED_AUDIT_LOGS);
+
 
   // Client Profile tailored for clinical & medical rehabilitation
   const [clientProfile, setClientProfile] = useState<ClientProfile>({
@@ -893,12 +1246,682 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast(`Medical track "${prog.title}" published!`, 'success');
   };
 
+  // ==============================================================================
+  // FITCOIN & ROLE ACCESS METHODS
+  // ==============================================================================
+
+  const getCurrentUserWallet = (): FitCoinWallet => {
+    return (
+      wallets[currentUser.id] || {
+        user_id: currentUser.id,
+        balance: 0,
+        total_earned: 0,
+        total_spent: 0,
+        updated_at: new Date().toISOString(),
+      }
+    );
+  };
+
+  const issueFitcoinTransaction = ({
+    userId,
+    amount,
+    type,
+    sourceReference,
+    idempotencyKey,
+    description,
+    createdBy = currentUser.id,
+    creatorName = currentUser.full_name,
+    metadata = {},
+  }: {
+    userId: string;
+    amount: number;
+    type: FitCoinTransactionType;
+    sourceReference: string;
+    idempotencyKey: string;
+    description: string;
+    createdBy?: string;
+    creatorName?: string;
+    metadata?: Record<string, any>;
+  }) => {
+    // 1. Idempotency check: if transaction with this key exists, return idempotent success
+    const existing = fitcoinTransactions.find((t) => t.idempotency_key === idempotencyKey);
+    if (existing) {
+      return {
+        success: true,
+        transactionId: existing.id,
+        newBalance: wallets[userId]?.balance || 0,
+        error: 'Transaction already processed (Idempotent)',
+      };
+    }
+
+    // 2. Balance check for debits
+    const currentWallet = wallets[userId] || {
+      user_id: userId,
+      balance: 0,
+      total_earned: 0,
+      total_spent: 0,
+      updated_at: new Date().toISOString(),
+    };
+
+    const newBalance = currentWallet.balance + amount;
+    if (newBalance < 0) {
+      addToast('Insufficient FitCoin balance for this operation', 'error');
+      return { success: false, error: 'Insufficient balance: FitCoin balance cannot be negative' };
+    }
+
+    const txId = `tx-fc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const targetUser = allProfiles.find((p) => p.id === userId);
+
+    const newTx: FitCoinTransaction = {
+      id: txId,
+      user_id: userId,
+      user_name: targetUser?.full_name || 'Client',
+      amount,
+      transaction_type: type,
+      source_reference: sourceReference,
+      idempotency_key: idempotencyKey,
+      description,
+      created_by: createdBy,
+      creator_name: creatorName,
+      metadata,
+      created_at: new Date().toISOString(),
+    };
+
+    // Update wallet atomically
+    setWallets((prev) => ({
+      ...prev,
+      [userId]: {
+        user_id: userId,
+        balance: newBalance,
+        total_earned: amount > 0 ? currentWallet.total_earned + amount : currentWallet.total_earned,
+        total_spent: amount < 0 ? currentWallet.total_spent + Math.abs(amount) : currentWallet.total_spent,
+        updated_at: new Date().toISOString(),
+      },
+    }));
+
+    // Append to ledger
+    setFitcoinTransactions((prev) => [newTx, ...prev]);
+
+    // In-app notification
+    const notif: NotificationItem = {
+      id: `notif-fc-${Date.now()}`,
+      user_id: userId,
+      title: amount >= 0 ? 'FitCoins Credited! 🪙' : 'FitCoins Debited',
+      message: `${description} (${amount >= 0 ? '+' : ''}${amount} FitCoins)`,
+      type: 'system',
+      is_read: false,
+      created_at: new Date().toISOString(),
+    };
+    setNotifications((prev) => [notif, ...prev]);
+
+    addToast(
+      amount >= 0
+        ? `+${amount} FitCoins credited! (${description})`
+        : `${amount} FitCoins debited: ${description}`,
+      amount >= 0 ? 'success' : 'info'
+    );
+
+    return { success: true, transactionId: txId, newBalance };
+  };
+
+  const awardReferralReward = (referralId: string) => {
+    const ref = referrals.find((r) => r.id === referralId);
+    if (!ref) return { success: false, error: 'Referral attribution not found' };
+    if (ref.status === 'rewarded') {
+      return { success: false, error: 'Referral rewards have already been issued' };
+    }
+
+    const referrerCoins = fitcoinSettings.referral_referrer_reward.enabled
+      ? fitcoinSettings.referral_referrer_reward.amount
+      : 0;
+    const referredCoins = fitcoinSettings.referral_referred_reward.enabled
+      ? fitcoinSettings.referral_referred_reward.amount
+      : 0;
+
+    if (referrerCoins > 0) {
+      issueFitcoinTransaction({
+        userId: ref.referrer_id,
+        amount: referrerCoins,
+        type: 'referral_reward',
+        sourceReference: `referral:${ref.id}:referrer`,
+        idempotencyKey: `idemp-ref-${ref.id}-referrer`,
+        description: `Referral reward for inviting ${ref.referred_user_name}`,
+        createdBy: 'system',
+        creatorName: 'DomainFit Referral Engine',
+        metadata: { referral_id: ref.id, referred_user_id: ref.referred_user_id },
+      });
+    }
+
+    if (referredCoins > 0) {
+      issueFitcoinTransaction({
+        userId: ref.referred_user_id,
+        amount: referredCoins,
+        type: 'referral_reward',
+        sourceReference: `referral:${ref.id}:referred`,
+        idempotencyKey: `idemp-ref-${ref.id}-referred`,
+        description: `Welcome referral bonus (Invited by ${ref.referrer_name})`,
+        createdBy: 'system',
+        creatorName: 'DomainFit Referral Engine',
+        metadata: { referral_id: ref.id, referrer_id: ref.referrer_id },
+      });
+    }
+
+    setReferrals((prev) =>
+      prev.map((r) =>
+        r.id === referralId
+          ? {
+              ...r,
+              status: 'rewarded',
+              qualified_at: new Date().toISOString(),
+              rewarded_at: new Date().toISOString(),
+              referrer_reward_amount: referrerCoins,
+              referred_reward_amount: referredCoins,
+            }
+          : r
+      )
+    );
+
+    return { success: true };
+  };
+
+  const completeWorkoutAndReward = (
+    workoutId: string,
+    workoutTitle: string
+  ): { success: boolean; error?: string; status: WorkoutCompletion['status']; rewardAmount: number } => {
+    const idempKey = `idemp-workout-${workoutId}-${currentUser.id}`;
+    const existingCompletion = workoutCompletions.find(
+      (wc) => wc.client_id === currentUser.id && wc.workout_id === workoutId
+    );
+
+    if (
+      existingCompletion &&
+      (existingCompletion.status === 'rewarded' ||
+        existingCompletion.status === 'completed_pending_review')
+    ) {
+      addToast('This workout has already been recorded and rewarded!', 'info');
+      return {
+        success: true,
+        status: existingCompletion.status,
+        rewardAmount: existingCompletion.reward_amount,
+      };
+    }
+
+    const requiresReview = fitcoinSettings.workout_requires_trainer_review.value;
+    const rewardAmount = fitcoinSettings.default_workout_reward.enabled
+      ? fitcoinSettings.default_workout_reward.amount
+      : 0;
+
+    if (requiresReview) {
+      const comp: WorkoutCompletion = {
+        id: `wc-${Date.now()}`,
+        client_id: currentUser.id,
+        client_name: currentUser.full_name,
+        workout_id: workoutId,
+        workout_title: workoutTitle,
+        status: 'completed_pending_review',
+        completed_at: new Date().toISOString(),
+        reward_amount: rewardAmount,
+      };
+      setWorkoutCompletions((prev) => [comp, ...prev]);
+      addToast('Workout completed! Submitted for trainer verification before FitCoins are released.', 'info');
+      return { success: true, status: 'completed_pending_review', rewardAmount };
+    } else {
+      // Immediate automated reward
+      const txRes = issueFitcoinTransaction({
+        userId: currentUser.id,
+        amount: rewardAmount,
+        type: 'workout_reward',
+        sourceReference: `workout:${workoutId}`,
+        idempotencyKey: idempKey,
+        description: `Completed: ${workoutTitle}`,
+        createdBy: currentUser.id,
+        creatorName: currentUser.full_name,
+      });
+
+      const comp: WorkoutCompletion = {
+        id: `wc-${Date.now()}`,
+        client_id: currentUser.id,
+        client_name: currentUser.full_name,
+        workout_id: workoutId,
+        workout_title: workoutTitle,
+        status: 'rewarded',
+        completed_at: new Date().toISOString(),
+        reward_amount: rewardAmount,
+        reward_transaction_id: txRes.transactionId,
+      };
+      setWorkoutCompletions((prev) => [comp, ...prev]);
+
+      // Check first-workout referral bonus
+      if (fitcoinSettings.referral_first_workout_bonus.enabled) {
+        const activeRef = referrals.find(
+          (r) => r.referred_user_id === currentUser.id && !r.first_workout_bonus_rewarded
+        );
+        if (activeRef) {
+          issueFitcoinTransaction({
+            userId: currentUser.id,
+            amount: fitcoinSettings.referral_first_workout_bonus.amount,
+            type: 'referral_first_workout_bonus',
+            sourceReference: `referral:${activeRef.id}:first_workout`,
+            idempotencyKey: `idemp-first-workout-${currentUser.id}`,
+            description: 'Special bonus: First completed workout milestone!',
+            createdBy: 'system',
+            creatorName: 'DomainFit Milestone Engine',
+          });
+          setReferrals((prev) =>
+            prev.map((r) =>
+              r.id === activeRef.id ? { ...r, first_workout_bonus_rewarded: true } : r
+            )
+          );
+        }
+      }
+
+      return { success: true, status: 'rewarded', rewardAmount };
+    }
+  };
+
+  const trainerReviewWorkout = (completionId: string, approved: boolean, notes = '') => {
+    const comp = workoutCompletions.find((wc) => wc.id === completionId);
+    if (!comp) return { success: false, error: 'Workout completion not found' };
+    if (comp.status !== 'completed_pending_review') {
+      return { success: false, error: 'Workout is not pending review' };
+    }
+
+    if (approved) {
+      const txRes = issueFitcoinTransaction({
+        userId: comp.client_id,
+        amount: comp.reward_amount,
+        type: 'workout_reward',
+        sourceReference: `workout:${comp.workout_id}`,
+        idempotencyKey: `idemp-workout-${comp.workout_id}-${comp.client_id}`,
+        description: `Approved workout: ${comp.workout_title} (Reviewed by ${currentUser.full_name})`,
+        createdBy: currentUser.id,
+        creatorName: currentUser.full_name,
+      });
+
+      setWorkoutCompletions((prev) =>
+        prev.map((wc) =>
+          wc.id === completionId
+            ? {
+                ...wc,
+                status: 'rewarded',
+                reviewed_by: currentUser.id,
+                reviewed_at: new Date().toISOString(),
+                review_notes: notes,
+                reward_transaction_id: txRes.transactionId,
+              }
+            : wc
+        )
+      );
+      addToast(`Workout approved and ${comp.reward_amount} FitCoins awarded to ${comp.client_name}!`, 'success');
+    } else {
+      setWorkoutCompletions((prev) =>
+        prev.map((wc) =>
+          wc.id === completionId
+            ? {
+                ...wc,
+                status: 'rejected',
+                reviewed_by: currentUser.id,
+                reviewed_at: new Date().toISOString(),
+                review_notes: notes,
+              }
+            : wc
+        )
+      );
+      addToast(`Workout submission rejected for ${comp.client_name}.`, 'info');
+    }
+
+    return { success: true };
+  };
+
+  const trainerAwardSessionFitcoins = (appointmentId: string, amount: number, reason = '') => {
+    if (currentUser.role !== 'trainer') {
+      return { success: false, error: 'Only authorized trainers can award coaching session FitCoins' };
+    }
+
+    const apt = appointments.find((a) => a.id === appointmentId);
+    if (!apt) {
+      return { success: false, error: 'Coaching appointment not found' };
+    }
+
+    // Prevent self-awarding
+    if (apt.client_id === currentUser.id) {
+      return { success: false, error: 'Security violation: Trainers cannot award FitCoins to themselves' };
+    }
+
+    // Check assignment or match
+    const isAssigned =
+      trainerAssignments.some(
+        (ta) =>
+          ta.trainer_id === currentUser.id &&
+          ta.client_id === apt.client_id &&
+          ta.status === 'active'
+      ) ||
+      appointments.some((a) => a.id === appointmentId && (a.trainer_id === currentUser.id || a.trainer_name.includes(currentUser.full_name)));
+
+    if (!isAssigned) {
+      return { success: false, error: 'Security violation: Trainer is not assigned to this client' };
+    }
+
+    // Validate amount limits from admin settings
+    const maxLimit = fitcoinSettings.max_trainer_award_per_session.amount;
+    if (amount <= 0 || amount > maxLimit) {
+      return {
+        success: false,
+        error: `Award amount must be between 1 and ${maxLimit} FitCoins per session`,
+      };
+    }
+
+    // Check if session has already been rewarded
+    const idempKey = `idemp-session-reward-${appointmentId}`;
+    const existing = fitcoinTransactions.find((t) => t.idempotency_key === idempKey);
+    if (existing) {
+      return { success: false, error: 'This coaching session has already received a FitCoin reward' };
+    }
+
+    // Issue transaction
+    const txRes = issueFitcoinTransaction({
+      userId: apt.client_id,
+      amount,
+      type: 'trainer_session_reward',
+      sourceReference: `appointment:${appointmentId}`,
+      idempotencyKey: idempKey,
+      description: reason
+        ? `Coaching session: ${reason}`
+        : `Completed 1-on-1 coaching session with ${currentUser.full_name}`,
+      createdBy: currentUser.id,
+      creatorName: currentUser.full_name,
+      metadata: { appointment_id: appointmentId, session_type: apt.session_type, notes: reason },
+    });
+
+    // Mark appointment completed
+    setAppointments((prev) =>
+      prev.map((a) => (a.id === appointmentId ? { ...a, status: 'completed' } : a))
+    );
+
+    return { success: true, transactionId: txRes.transactionId };
+  };
+
+  const adminAdjustFitcoins = (targetUserId: string, amount: number, reason: string) => {
+    if (currentUser.role !== 'admin') {
+      return { success: false, error: 'Unauthorized: Administrator privileges required' };
+    }
+
+    if (!fitcoinSettings.admin_manual_adjustments_enabled.enabled) {
+      return { success: false, error: 'Manual FitCoin adjustments are currently disabled by platform policy' };
+    }
+
+    const maxAdj = fitcoinSettings.admin_manual_adjustments_enabled.max_amount;
+    if (Math.abs(amount) > maxAdj) {
+      return { success: false, error: `Adjustment exceeds maximum permitted limit of ${maxAdj} FitCoins` };
+    }
+
+    const idempKey = `idemp-admin-adj-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const txRes = issueFitcoinTransaction({
+      userId: targetUserId,
+      amount,
+      type: 'admin_adjustment',
+      sourceReference: `admin_adj:${currentUser.id}:${Date.now()}`,
+      idempotencyKey: idempKey,
+      description: `Administrative adjustment: ${reason}`,
+      createdBy: currentUser.id,
+      creatorName: currentUser.full_name,
+      metadata: { reason, adjusted_by: currentUser.full_name },
+    });
+
+    if (!txRes.success) return txRes;
+
+    // Record audit log
+    const audit: AuditLog = {
+      id: `audit-${Date.now()}`,
+      actor_id: currentUser.id,
+      actor_name: currentUser.full_name,
+      action: 'ADMIN_FITCOIN_ADJUSTMENT',
+      target_type: 'fitcoin_wallet',
+      target_id: targetUserId,
+      new_state: { amount, new_balance: txRes.newBalance },
+      reason,
+      created_at: new Date().toISOString(),
+    };
+    setAuditLogs((prev) => [audit, ...prev]);
+
+    return { success: true, transactionId: txRes.transactionId };
+  };
+
+  const adminReverseFitcoinTransaction = (transactionId: string, reason: string) => {
+    if (currentUser.role !== 'admin') {
+      return { success: false, error: 'Unauthorized: Administrator privileges required' };
+    }
+
+    const origTx = fitcoinTransactions.find((t) => t.id === transactionId);
+    if (!origTx) return { success: false, error: 'Transaction not found in ledger' };
+
+    if (origTx.transaction_type === 'reversal') {
+      return { success: false, error: 'Cannot reverse a reversal transaction' };
+    }
+
+    // Check if already reversed
+    const alreadyReversed = fitcoinTransactions.some(
+      (t) => t.source_reference === `reversal:${transactionId}`
+    );
+    if (alreadyReversed) {
+      return { success: false, error: 'This transaction has already been reversed' };
+    }
+
+    const revAmount = -1 * origTx.amount;
+    const idempKey = `idemp-rev-${transactionId}`;
+
+    const txRes = issueFitcoinTransaction({
+      userId: origTx.user_id,
+      amount: revAmount,
+      type: 'reversal',
+      sourceReference: `reversal:${transactionId}`,
+      idempotencyKey: idempKey,
+      description: `Auditable Reversal: ${reason}`,
+      createdBy: currentUser.id,
+      creatorName: currentUser.full_name,
+      metadata: { original_tx_id: transactionId, original_type: origTx.transaction_type, reason },
+    });
+
+    if (!txRes.success) return txRes;
+
+    const audit: AuditLog = {
+      id: `audit-${Date.now()}`,
+      actor_id: currentUser.id,
+      actor_name: currentUser.full_name,
+      action: 'TRANSACTION_REVERSAL',
+      target_type: 'fitcoin_transaction',
+      target_id: transactionId,
+      old_state: origTx,
+      new_state: { reversal_tx_id: txRes.transactionId, reversed_amount: revAmount },
+      reason,
+      created_at: new Date().toISOString(),
+    };
+    setAuditLogs((prev) => [audit, ...prev]);
+
+    return { success: true, transactionId: txRes.transactionId };
+  };
+
+  const updateFitcoinSetting = <K extends keyof FitCoinSettings>(key: K, value: FitCoinSettings[K]) => {
+    if (currentUser.role !== 'admin') {
+      return { success: false, error: 'Unauthorized: Admin role required to update reward rules' };
+    }
+
+    const oldVal = fitcoinSettings[key];
+    setFitcoinSettings((prev) => ({ ...prev, [key]: value }));
+
+    const audit: AuditLog = {
+      id: `audit-${Date.now()}`,
+      actor_id: currentUser.id,
+      actor_name: currentUser.full_name,
+      action: 'UPDATE_FITCOIN_SETTING',
+      target_type: 'fitcoin_settings',
+      target_id: String(key),
+      old_state: oldVal,
+      new_state: value,
+      reason: `Platform setting updated by ${currentUser.full_name}`,
+      created_at: new Date().toISOString(),
+    };
+    setAuditLogs((prev) => [audit, ...prev]);
+    addToast(`FitCoin policy "${String(key)}" updated!`, 'success');
+    return { success: true };
+  };
+
+  const registerClient = (
+    fullName: string,
+    email: string,
+    password: string,
+    referralCodeInput = ''
+  ) => {
+    if (allProfiles.some((p) => p.email.toLowerCase() === email.toLowerCase())) {
+      return { success: false, error: 'An account with this email already exists' };
+    }
+
+    const newUserId = `user-client-${Date.now()}`;
+    const newProfile: UserProfile = {
+      id: newUserId,
+      email: email.toLowerCase(),
+      full_name: fullName,
+      role: 'client', // STRICT: new public registrations ALWAYS get client role!
+      avatar_url: '/images/domainfit/home-fitness.jpg',
+      created_at: new Date().toISOString(),
+    };
+
+    setAllProfiles((prev) => [newProfile, ...prev]);
+    setCurrentUser(newProfile);
+
+    // Generate unique personal referral code
+    const cleanCode = fullName.split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '') || 'FIT';
+    const uniqueCode = `${cleanCode}${Math.floor(1000 + Math.random() * 9000)}`;
+    const refCodeObj: ReferralCode = {
+      id: `ref-code-${Date.now()}`,
+      user_id: newUserId,
+      code: uniqueCode,
+      is_active: true,
+      total_uses: 0,
+      created_at: new Date().toISOString(),
+    };
+    setReferralCodes((prev) => [refCodeObj, ...prev]);
+
+    // Initialize empty wallet
+    setWallets((prev) => ({
+      ...prev,
+      [newUserId]: {
+        user_id: newUserId,
+        balance: 0,
+        total_earned: 0,
+        total_spent: 0,
+        updated_at: new Date().toISOString(),
+      },
+    }));
+
+    // Handle referral code attribution if provided
+    if (referralCodeInput.trim()) {
+      const trimmedCode = referralCodeInput.trim().toUpperCase();
+      const matchedRef = referralCodes.find(
+        (rc) => rc.code.toUpperCase() === trimmedCode && rc.is_active
+      );
+
+      if (matchedRef) {
+        if (matchedRef.user_id === newUserId) {
+          addToast('Self-referrals are not permitted', 'error');
+        } else {
+          const referrerUser = allProfiles.find((p) => p.id === matchedRef.user_id);
+          const refRow: Referral = {
+            id: `ref-row-${Date.now()}`,
+            referrer_id: matchedRef.user_id,
+            referrer_name: referrerUser?.full_name || 'Member',
+            referred_user_id: newUserId,
+            referred_user_name: fullName,
+            referral_code: matchedRef.code,
+            status: 'qualified',
+            qualified_at: new Date().toISOString(),
+            referrer_reward_amount: 0,
+            referred_reward_amount: 0,
+            first_workout_bonus_rewarded: false,
+            created_at: new Date().toISOString(),
+          };
+          setReferrals((prev) => [refRow, ...prev]);
+
+          // Increment referral code usage count
+          setReferralCodes((prev) =>
+            prev.map((rc) =>
+              rc.id === matchedRef.id ? { ...rc, total_uses: rc.total_uses + 1 } : rc
+            )
+          );
+
+          // If rule is verified_signup_and_first_login, issue rewards immediately!
+          if (
+            fitcoinSettings.referral_eligibility_criteria.rule === 'verified_signup_and_first_login'
+          ) {
+            setTimeout(() => {
+              awardReferralReward(refRow.id);
+            }, 300);
+          }
+        }
+      }
+    }
+
+    addToast(`Welcome to DomainFit, ${fullName}! Your client profile has been created.`, 'success');
+    return { success: true, user: newProfile };
+  };
+
+  const loginWithRole = (email: string, password: string, requiredRole?: UserRole) => {
+    const matched = allProfiles.find((p) => p.email.toLowerCase() === email.toLowerCase());
+    if (!matched) {
+      return { success: false, error: 'Invalid email address or credentials' };
+    }
+
+    // Security check: ensure user possesses the required role
+    if (requiredRole && matched.role !== requiredRole) {
+      return {
+        success: false,
+        error: `Access Denied: Account does not have ${requiredRole.toUpperCase()} credentials. Please use the /login/${matched.role} portal.`,
+      };
+    }
+
+    setCurrentUser(matched);
+    addToast(`Authenticated as ${matched.full_name} (${matched.role.toUpperCase()})`, 'success');
+    return { success: true, user: matched };
+  };
+
+  const assignClientToTrainer = (clientId: string, trainerId: string) => {
+    if (currentUser.role !== 'admin') {
+      return { success: false, error: 'Unauthorized: Admin privileges required' };
+    }
+    const clientUser = allProfiles.find((p) => p.id === clientId);
+    const trainerUser = allProfiles.find((p) => p.id === trainerId);
+    if (!clientUser || !trainerUser) return { success: false, error: 'User not found' };
+
+    const assignment: TrainerAssignment = {
+      id: `ta-${Date.now()}`,
+      trainer_id: trainerId,
+      trainer_name: trainerUser.full_name,
+      client_id: clientId,
+      client_name: clientUser.full_name,
+      status: 'active',
+      created_at: new Date().toISOString(),
+    };
+
+    setTrainerAssignments((prev) => [assignment, ...prev]);
+    addToast(`Assigned ${clientUser.full_name} to coach ${trainerUser.full_name}`, 'success');
+    return { success: true };
+  };
+
+  const toggleTrainerStatus = (trainerUserId: string, isActive: boolean) => {
+    if (currentUser.role !== 'admin') {
+      return { success: false, error: 'Unauthorized: Admin privileges required' };
+    }
+    addToast(`Trainer account ${isActive ? 'activated' : 'deactivated'}`, 'info');
+    return { success: true };
+  };
+
   return (
     <StoreContext.Provider
       value={{
         currentUser,
         setCurrentUser,
         switchRole,
+        allProfiles,
         trainers,
         programs,
         workoutPlan,
@@ -934,6 +1957,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         clientProfile,
         updateClientProfile,
         createProgram,
+
+        // FitCoin & Roles
+        wallets,
+        fitcoinTransactions,
+        referralCodes,
+        referrals,
+        workoutCompletions,
+        trainerAssignments,
+        fitcoinSettings,
+        auditLogs,
+        getCurrentUserWallet,
+        issueFitcoinTransaction,
+        awardReferralReward,
+        completeWorkoutAndReward,
+        trainerReviewWorkout,
+        trainerAwardSessionFitcoins,
+        adminAdjustFitcoins,
+        adminReverseFitcoinTransaction,
+        updateFitcoinSetting,
+        registerClient,
+        loginWithRole,
+        assignClientToTrainer,
+        toggleTrainerStatus,
       }}
     >
       {children}

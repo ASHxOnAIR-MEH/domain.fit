@@ -15,13 +15,36 @@ import {
   AlertCircle,
   MessageSquare,
   TrendingUp,
+  Coins,
+  Award,
+  Check,
+  X,
 } from 'lucide-react';
 
 export default function TrainerDashboardOverview() {
-  const { currentUser, appointments, workoutLogs, mealLogs, trainers } = useStore();
+  const {
+    currentUser,
+    appointments,
+    workoutLogs,
+    mealLogs,
+    trainers,
+    fitcoinTransactions,
+    workoutCompletions,
+    trainerReviewWorkout,
+    addToast,
+  } = useStore();
 
   const myTrainer = trainers.find((t) => t.id === 'trainer-1') || trainers[0];
   const pendingMealReviews = mealLogs.filter((m) => m.trainer_feedback?.includes('pending')).length;
+
+  const myAwards = fitcoinTransactions.filter(
+    (tx) => tx.created_by === currentUser.id && tx.transaction_type === 'trainer_session_reward'
+  );
+  const totalAwarded = myAwards.reduce((acc, tx) => acc + tx.amount, 0);
+
+  const pendingWorkoutReviews = workoutCompletions.filter(
+    (wc) => wc.status === 'completed_pending_review'
+  );
 
   return (
     <DashboardLayout
@@ -30,7 +53,7 @@ export default function TrainerDashboardOverview() {
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
         {/* METRICS ROW */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
           <div className="card" style={{ padding: '24px' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Assigned Patients</span>
             <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-primary)', marginTop: '4px' }}>
@@ -48,11 +71,19 @@ export default function TrainerDashboardOverview() {
           </div>
 
           <div className="card" style={{ padding: '24px' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Pending Meal & Glucose Reviews</span>
-            <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#FBBF24', marginTop: '4px' }}>
-              {pendingMealReviews || 1}
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>FitCoins Awarded</span>
+            <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-primary)', marginTop: '4px' }}>
+              {totalAwarded} 🪙
             </h3>
-            <span style={{ fontSize: '0.75rem', color: '#FBBF24' }}>Requires review</span>
+            <span style={{ fontSize: '0.75rem', color: '#34D399' }}>{myAwards.length} coaching rewards</span>
+          </div>
+
+          <div className="card" style={{ padding: '24px' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Pending Workout Reviews</span>
+            <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#FBBF24', marginTop: '4px' }}>
+              {pendingWorkoutReviews.length}
+            </h3>
+            <span style={{ fontSize: '0.75rem', color: '#FBBF24' }}>Requires approval</span>
           </div>
 
           <div className="card" style={{ padding: '24px' }}>
@@ -138,9 +169,98 @@ export default function TrainerDashboardOverview() {
           </div>
         </div>
 
+        {/* PENDING WORKOUT REVIEWS QUEUE */}
+        {pendingWorkoutReviews.length > 0 && (
+          <div
+            className="card"
+            style={{
+              padding: '28px',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: 'var(--radius-xl)',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FBBF24' }}>
+                <Clock size={20} />
+                <h3 style={{ fontSize: '1.25rem', color: '#fff', fontWeight: 700 }}>
+                  Workouts Awaiting Specialist Review
+                </h3>
+              </div>
+              <span className="badge badge-lime" style={{ fontSize: '0.72rem' }}>
+                {pendingWorkoutReviews.length} Submissions
+              </span>
+            </div>
+
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              Verify completed movement patterns and grant the client their configured FitCoins.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {pendingWorkoutReviews.map((wc) => (
+                <div
+                  key={wc.id}
+                  style={{
+                    padding: '16px 20px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-subtle)',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '14px',
+                  }}
+                >
+                  <div>
+                    <h4 style={{ fontSize: '1rem', color: '#fff' }}>{wc.client_name}</h4>
+                    <span style={{ fontSize: '0.82rem', color: '#60A5FA' }}>{wc.workout_title}</span>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                      Completed at {new Date(wc.completed_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => trainerReviewWorkout(wc.id, true)}
+                      className="btn-primary btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Check size={14} />
+                      <span>Approve (+{wc.reward_amount} 🪙)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => trainerReviewWorkout(wc.id, false, 'Form review required before reward')}
+                      className="btn-secondary btn-sm"
+                      style={{ color: '#EF4444' }}
+                    >
+                      <X size={14} />
+                      <span>Reject</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* UPCOMING COACHING CONSULTATIONS */}
         <div className="card" style={{ padding: '32px', backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius-xl)' }}>
-          <h3 style={{ fontSize: '1.3rem', color: '#fff', marginBottom: '16px' }}>Upcoming Athlete Appointments</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.3rem', color: '#fff' }}>Upcoming Athlete Appointments</h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Conduct session and award client FitCoins upon consultation conclusion.
+              </p>
+            </div>
+            <Link href="/trainer/calendar" className="btn-secondary btn-sm" style={{ gap: '6px' }}>
+              <Coins size={14} />
+              <span>Complete & Award Sessions</span>
+            </Link>
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {appointments.map((apt) => (
               <div
@@ -158,14 +278,26 @@ export default function TrainerDashboardOverview() {
                 }}
               >
                 <div>
-                  <h4 style={{ fontSize: '1.05rem', color: '#fff' }}>{apt.client_name}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h4 style={{ fontSize: '1.05rem', color: '#fff' }}>{apt.client_name}</h4>
+                    {apt.status === 'completed' ? (
+                      <span className="badge badge-lime" style={{ fontSize: '0.68rem' }}>Completed</span>
+                    ) : (
+                      <span className="badge badge-blue" style={{ fontSize: '0.68rem' }}>Scheduled</span>
+                    )}
+                  </div>
                   <span style={{ fontSize: '0.82rem', color: 'var(--accent-primary)' }}>{apt.session_type}</span>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Focus: {apt.notes}</p>
                 </div>
 
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#fff' }}>{apt.session_date}</span>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{apt.start_time} - {apt.end_time}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#fff' }}>{apt.session_date}</span>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{apt.start_time} - {apt.end_time}</p>
+                  </div>
+                  <Link href="/trainer/calendar" className="btn-primary btn-sm" style={{ padding: '8px 14px' }}>
+                    Award FitCoins
+                  </Link>
                 </div>
               </div>
             ))}

@@ -286,3 +286,175 @@ CREATE POLICY "Clients and trainers can access their appointments"
     EXISTS (SELECT 1 FROM public.trainer_profiles tp WHERE tp.id = trainer_id AND tp.user_id = auth.uid()) OR
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
+
+-- ==============================================================================
+-- 13. FITCOIN WALLET, REFERRALS & ROLE GOVERNANCE
+-- ==============================================================================
+
+-- TRAINER ASSIGNMENTS TABLE
+CREATE TABLE IF NOT EXISTS public.trainer_assignments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  trainer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  client_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  status TEXT DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'paused', 'completed', 'terminated')),
+  notes TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  CONSTRAINT unique_active_trainer_client UNIQUE (trainer_id, client_id, status)
+);
+
+-- REFERRAL CODES TABLE
+CREATE TABLE IF NOT EXISTS public.referral_codes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE NOT NULL,
+  code TEXT UNIQUE NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE NOT NULL,
+  total_uses INTEGER DEFAULT 0 NOT NULL CHECK (total_uses >= 0),
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- REFERRALS ATTRIBUTION TABLE
+CREATE TABLE IF NOT EXISTS public.referrals (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  referrer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  referred_user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE NOT NULL,
+  referral_code TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' NOT NULL CHECK (status IN ('pending', 'qualified', 'rewarded', 'rejected')),
+  qualified_at TIMESTAMPTZ,
+  rewarded_at TIMESTAMPTZ,
+  referrer_reward_amount INTEGER DEFAULT 0 NOT NULL,
+  referred_reward_amount INTEGER DEFAULT 0 NOT NULL,
+  first_workout_bonus_rewarded BOOLEAN DEFAULT FALSE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  CONSTRAINT prevent_self_referral CHECK (referrer_id <> referred_user_id)
+);
+
+-- WORKOUT COMPLETIONS TABLE
+CREATE TABLE IF NOT EXISTS public.workout_completions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  client_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  workout_id TEXT NOT NULL,
+  workout_title TEXT NOT NULL,
+  status TEXT DEFAULT 'in_progress' NOT NULL CHECK (status IN ('in_progress', 'completed_pending_review', 'approved', 'rewarded', 'rejected')),
+  completed_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  reviewed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  review_notes TEXT DEFAULT '',
+  reward_transaction_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  CONSTRAINT unique_client_workout_completion UNIQUE (client_id, workout_id)
+);
+
+-- FITCOIN WALLETS TABLE
+CREATE TABLE IF NOT EXISTS public.fitcoin_wallets (
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE PRIMARY KEY,
+  balance INTEGER DEFAULT 0 NOT NULL CHECK (balance >= 0),
+  total_earned INTEGER DEFAULT 0 NOT NULL CHECK (total_earned >= 0),
+  total_spent INTEGER DEFAULT 0 NOT NULL CHECK (total_spent >= 0),
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- FITCOIN TRANSACTIONS TABLE (IMMUTABLE LEDGER)
+CREATE TABLE IF NOT EXISTS public.fitcoin_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  amount INTEGER NOT NULL,
+  transaction_type TEXT NOT NULL CHECK (
+    transaction_type IN (
+      'referral_reward',
+      'referral_first_workout_bonus',
+      'workout_reward',
+      'trainer_session_reward',
+      'admin_adjustment',
+      'redemption',
+      'reversal'
+    )
+  ),
+  source_reference TEXT NOT NULL,
+  idempotency_key TEXT UNIQUE NOT NULL,
+  description TEXT NOT NULL,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  metadata JSONB DEFAULT '{}'::jsonb NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- FITCOIN SETTINGS TABLE
+CREATE TABLE IF NOT EXISTS public.fitcoin_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  description TEXT NOT NULL,
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- AUDIT LOGS TABLE
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  actor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  old_state JSONB,
+  new_state JSONB,
+  reason TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- RLS ACTIVATION
+ALTER TABLE public.trainer_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.referral_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.workout_completions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitcoin_wallets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitcoin_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fitcoin_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Clients can view their trainer assignments"
+  ON public.trainer_assignments FOR SELECT
+  USING (client_id = auth.uid() OR trainer_id = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+CREATE POLICY "Users can view their own referral code"
+  ON public.referral_codes FOR SELECT
+  USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+CREATE POLICY "Authenticated users can lookup active referral codes"
+  ON public.referral_codes FOR SELECT
+  USING (is_active = true);
+
+CREATE POLICY "Users can view referrals they are involved in"
+  ON public.referrals FOR SELECT
+  USING (referrer_id = auth.uid() OR referred_user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+CREATE POLICY "Clients can manage their own workout completions"
+  ON public.workout_completions FOR ALL
+  USING (
+    client_id = auth.uid() OR
+    EXISTS (SELECT 1 FROM public.trainer_assignments ta WHERE ta.trainer_id = auth.uid() AND ta.client_id = workout_completions.client_id) OR
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY "Users view own wallet balance"
+  ON public.fitcoin_wallets FOR SELECT
+  USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+CREATE POLICY "Users view own transactions"
+  ON public.fitcoin_transactions FOR SELECT
+  USING (
+    user_id = auth.uid() OR 
+    created_by = auth.uid() OR
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY "Settings are readable by authenticated users"
+  ON public.fitcoin_settings FOR SELECT
+  USING (true);
+
+CREATE POLICY "Admins can update fitcoin settings"
+  ON public.fitcoin_settings FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+CREATE POLICY "Admins can view audit logs"
+  ON public.audit_logs FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+

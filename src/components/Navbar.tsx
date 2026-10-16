@@ -144,6 +144,23 @@ export const Navbar: React.FC = () => {
             })}
           </div>
 
+          <Link 
+            href="/login" 
+            style={{ 
+              fontSize: '0.88rem', 
+              fontWeight: 600, 
+              color: 'var(--text-secondary)',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid transparent',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-primary)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          >
+            Sign In
+          </Link>
+
           <Link href={getDashboardHref()} className="btn-secondary btn-sm" style={{ padding: '8px 16px', gap: '6px' }}>
             {currentUser.role === 'client' && <Activity size={15} color="var(--accent-primary)" />}
             {currentUser.role === 'trainer' && <User size={15} color="var(--accent-primary)" />}
@@ -237,23 +254,33 @@ export const Navbar: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
             <Link
-              href={getDashboardHref()}
+              href="/login"
               onClick={() => setMobileMenuOpen(false)}
               className="btn-secondary"
-              style={{ flex: 1 }}
+              style={{ textAlign: 'center', borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}
             >
-              Go to Dashboard
+              Sign In to Portals
             </Link>
-            <Link
-              href="/programs"
-              onClick={() => setMobileMenuOpen(false)}
-              className="btn-primary"
-              style={{ flex: 1 }}
-            >
-              Get Started
-            </Link>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <Link
+                href={getDashboardHref()}
+                onClick={() => setMobileMenuOpen(false)}
+                className="btn-secondary"
+                style={{ flex: 1, textAlign: 'center' }}
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/programs"
+                onClick={() => setMobileMenuOpen(false)}
+                className="btn-primary"
+                style={{ flex: 1, textAlign: 'center' }}
+              >
+                Get Started
+              </Link>
+            </div>
           </div>
         </div>
       )}

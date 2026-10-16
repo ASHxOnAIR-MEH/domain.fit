@@ -24,6 +24,9 @@ import {
   CheckCircle,
   ExternalLink,
   Flame,
+  Coins,
+  Gift,
+  Sliders,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -40,17 +43,20 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
     switchRole, 
     notifications, 
     markNotificationRead,
-    clientStreak 
+    clientStreak,
+    getCurrentUserWallet,
   } = useStore();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const userWallet = getCurrentUserWallet();
 
   // Role-based Nav items
   const clientNav = [
     { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'FitCoin Wallet & Rewards', href: '/dashboard/wallet', icon: Coins },
     { name: 'Gentle Home Workouts', href: '/dashboard/workouts', icon: Dumbbell },
     { name: 'Clinical Nutrition & Water', href: '/dashboard/nutrition', icon: Apple },
     { name: 'Vitals, Glucose & Biometrics', href: '/dashboard/progress', icon: TrendingUp },
@@ -63,12 +69,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
     { name: 'Patient / Client Roster', href: '/trainer/clients', icon: Users },
     { name: 'Movement Protocol Builder', href: '/trainer/workouts', icon: Dumbbell },
     { name: 'Glycemic & Nutrition Builder', href: '/trainer/nutrition', icon: Apple },
-    { name: 'Telehealth Schedule', href: '/trainer/calendar', icon: Calendar },
+    { name: 'Telehealth & Session Rewards', href: '/trainer/calendar', icon: Calendar },
     { name: 'Patient Messages', href: '/trainer/messages', icon: MessageSquare },
   ];
 
   const adminNav = [
     { name: 'Admin Overview', href: '/admin', icon: LayoutDashboard },
+    { name: 'FitCoin Governance', href: '/admin/fitcoin', icon: Coins },
     { name: 'User Management', href: '/admin/users', icon: Users },
     { name: 'Fitness Programs', href: '/admin/programs', icon: Layers },
     { name: 'Memberships & Pricing', href: '/admin/memberships', icon: CreditCard },
@@ -390,6 +397,29 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
                 </div>
               )}
             </div>
+
+            {/* FitCoin Wallet Pill */}
+            {currentUser.role === 'client' && (
+              <Link
+                href="/dashboard/wallet"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  backgroundColor: 'rgba(183, 243, 74, 0.12)',
+                  border: '1px solid rgba(183, 243, 74, 0.35)',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <Coins size={16} color="var(--accent-primary)" />
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
+                  {userWallet.balance} 🪙
+                </span>
+              </Link>
+            )}
 
             {/* Profile Avatar Badge */}
             <div

@@ -239,3 +239,119 @@ export interface BlogPost {
   tags: string[];
   published_at: string;
 }
+
+// ==============================================================================
+// FITCOIN & ROLE ACCESS TYPES
+// ==============================================================================
+
+export type FitCoinTransactionType =
+  | 'referral_reward'
+  | 'referral_first_workout_bonus'
+  | 'workout_reward'
+  | 'trainer_session_reward'
+  | 'admin_adjustment'
+  | 'redemption'
+  | 'reversal';
+
+export interface FitCoinWallet {
+  user_id: string;
+  balance: number;
+  total_earned: number;
+  total_spent: number;
+  updated_at: string;
+}
+
+export interface FitCoinTransaction {
+  id: string;
+  user_id: string;
+  user_name?: string;
+  amount: number; // positive = credit, negative = debit
+  transaction_type: FitCoinTransactionType;
+  source_reference: string;
+  idempotency_key: string;
+  description: string;
+  created_by?: string;
+  creator_name?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface ReferralCode {
+  id: string;
+  user_id: string;
+  code: string;
+  is_active: boolean;
+  total_uses: number;
+  created_at: string;
+}
+
+export interface Referral {
+  id: string;
+  referrer_id: string;
+  referrer_name: string;
+  referred_user_id: string;
+  referred_user_name: string;
+  referral_code: string;
+  status: 'pending' | 'qualified' | 'rewarded' | 'rejected';
+  qualified_at?: string;
+  rewarded_at?: string;
+  referrer_reward_amount: number;
+  referred_reward_amount: number;
+  first_workout_bonus_rewarded: boolean;
+  created_at: string;
+}
+
+export interface WorkoutCompletion {
+  id: string;
+  client_id: string;
+  client_name: string;
+  workout_id: string;
+  workout_title: string;
+  status: 'in_progress' | 'completed_pending_review' | 'approved' | 'rewarded' | 'rejected';
+  completed_at: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_notes?: string;
+  reward_amount: number;
+  reward_transaction_id?: string;
+}
+
+export interface TrainerAssignment {
+  id: string;
+  trainer_id: string;
+  trainer_name: string;
+  client_id: string;
+  client_name: string;
+  status: 'active' | 'paused' | 'completed' | 'terminated';
+  created_at: string;
+}
+
+export interface FitCoinSettings {
+  referral_referrer_reward: { amount: number; enabled: boolean };
+  referral_referred_reward: { amount: number; enabled: boolean };
+  referral_eligibility_criteria: {
+    rule: 'verified_signup_and_first_login' | 'verified_signup_and_profile' | 'first_workout' | 'first_session';
+    description: string;
+  };
+  referral_first_workout_bonus: { amount: number; enabled: boolean };
+  default_workout_reward: { amount: number; enabled: boolean };
+  workout_requires_trainer_review: { value: boolean };
+  max_trainer_award_per_session: { amount: number; enabled: boolean };
+  admin_manual_adjustments_enabled: { enabled: boolean; max_amount: number };
+  reward_expiry_policy: { enabled: boolean; days: number };
+  redemption_enabled: { enabled: boolean };
+}
+
+export interface AuditLog {
+  id: string;
+  actor_id: string;
+  actor_name: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  old_state?: any;
+  new_state?: any;
+  reason?: string;
+  created_at: string;
+}
+

@@ -16,6 +16,8 @@ import {
   Calendar,
   X,
   ShieldAlert,
+  Coins,
+  Award,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -26,13 +28,25 @@ interface ExerciseFormState {
 }
 
 export default function ClientWorkoutsPage() {
-  const { workoutPlan, logWorkout, workoutLogs, clientStreak } = useStore();
+  const {
+    currentUser,
+    workoutPlan,
+    logWorkout,
+    workoutLogs,
+    clientStreak,
+    completeWorkoutAndReward,
+    workoutCompletions,
+    fitcoinSettings,
+  } = useStore();
   const [selectedDayIndex, setSelectedDayIndex] = useState(0); // Day 1 default
   const [demoModalExercise, setDemoModalExercise] = useState<string | null>(null);
   const [workoutNotes, setWorkoutNotes] = useState('');
   const [rpeScale, setRpeScale] = useState<number>(4);
 
   const currentDay = workoutPlan.days[selectedDayIndex] || workoutPlan.days[0];
+  const currentCompletion = workoutCompletions.find(
+    (wc) => wc.client_id === currentUser.id && wc.workout_id === currentDay.id
+  );
 
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseFormState>(() => {
     const init: ExerciseFormState = {};
@@ -77,7 +91,7 @@ export default function ClientWorkoutsPage() {
     });
 
     logWorkout({
-      client_id: 'user-client-1',
+      client_id: currentUser.id,
       workout_day_title: currentDay.day_name,
       date: new Date().toISOString().split('T')[0],
       duration_minutes: 25,
@@ -86,11 +100,14 @@ export default function ClientWorkoutsPage() {
       notes: workoutNotes || 'Felt gentle and restorative. No joint irritation or dizziness.',
     });
 
+    // Execute atomic FitCoin reward
+    completeWorkoutAndReward(currentDay.id, currentDay.day_name);
+
     confetti({
-      particleCount: 80,
-      spread: 70,
+      particleCount: 90,
+      spread: 75,
       origin: { y: 0.6 },
-      colors: ['#B7F34A', '#FFFFFF', '#34D399'],
+      colors: ['#B7F34A', '#FFFFFF', '#34D399', '#60A5FA'],
     });
   };
 
@@ -301,10 +318,35 @@ export default function ClientWorkoutsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={handleFinishWorkout} className="btn-primary" style={{ padding: '14px 32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Coins size={18} color="var(--accent-primary)" />
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Reward Incentive:{' '}
+                <strong style={{ color: 'var(--accent-primary)' }}>
+                  +{fitcoinSettings.default_workout_reward.amount} FitCoins
+                </strong>
+                {fitcoinSettings.workout_requires_trainer_review.value && ' (Requires specialist review)'}
+              </span>
+            </div>
+
+            <button
+              onClick={handleFinishWorkout}
+              disabled={currentCompletion?.status === 'rewarded'}
+              className="btn-primary"
+              style={{
+                padding: '14px 28px',
+                opacity: currentCompletion?.status === 'rewarded' ? 0.75 : 1,
+              }}
+            >
               <CheckCircle2 size={18} />
-              <span>Log Completed Session & Submit to Specialist</span>
+              <span>
+                {currentCompletion?.status === 'rewarded'
+                  ? `✓ Session Completed & Rewarded (+${currentCompletion.reward_amount} 🪙)`
+                  : currentCompletion?.status === 'completed_pending_review'
+                  ? '⏳ Submitted & Pending Specialist Review'
+                  : `Complete Session & Claim +${fitcoinSettings.default_workout_reward.amount} FitCoins`}
+              </span>
             </button>
           </div>
         </div>
