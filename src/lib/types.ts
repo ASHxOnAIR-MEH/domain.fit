@@ -212,18 +212,37 @@ export interface NotificationItem {
   created_at: string;
 }
 
+export type PaymentStatus = 'succeeded' | 'pending' | 'failed' | 'refunded';
+export type PaymentItemType = 'program' | 'membership' | 'coaching_session';
+
 export interface PaymentTransaction {
   id: string;
   user_id: string;
   user_name: string;
   amount: number;
   currency: string;
-  status: 'succeeded' | 'pending' | 'refunded';
-  item_type: 'program' | 'membership' | 'coaching_session';
+  status: PaymentStatus;
+  item_type: PaymentItemType;
   item_name: string;
   payment_method: string;
   razorpay_payment_id: string;
+  razorpay_order_id?: string;
+  error_reason?: string;
+  metadata?: Record<string, any>;
   created_at: string;
+}
+
+export interface RazorpayOrderPayload {
+  amount: number;
+  currency: string;
+  receipt: string;
+  notes?: Record<string, string>;
+}
+
+export interface RazorpayVerificationPayload {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature?: string;
 }
 
 export interface BlogPost {

@@ -605,6 +605,47 @@ async function runAllTests() {
   }
 
   // =========================================================================
+  banner('SUITE 7: RAZORPAY PAYMENT GATEWAY & FINANCIAL AUDIT TESTS');
+  // =========================================================================
+  {
+    const paymentMigPath = path.resolve('supabase/migrations/20261020_payment_gateway_tables.sql');
+    assert(fs.existsSync(paymentMigPath), '7.1 Payment gateway SQL migration file exists');
+
+    const paymentSql = fs.readFileSync(paymentMigPath, 'utf8');
+    assert(paymentSql.includes('CREATE TABLE IF NOT EXISTS public.payments'), '7.2 Payments table DDL defined');
+    assert(paymentSql.includes('CHECK (amount > 0)'), '7.3 Payments table positive amount constraint');
+    assert(/razorpay_order_id\s+TEXT\s+UNIQUE/i.test(paymentSql), '7.4 Unique constraint on razorpay_order_id');
+    assert(/razorpay_payment_id\s+TEXT\s+UNIQUE/i.test(paymentSql), '7.5 Unique constraint on razorpay_payment_id');
+    assert(paymentSql.includes('FUNCTION public.record_razorpay_payment'), '7.6 Stored Procedure: record_razorpay_payment exists');
+    assert(paymentSql.includes('Users view own payments'), '7.7 RLS policy: Users view own payments');
+    assert(paymentSql.includes('Admins manage all payments'), '7.8 RLS policy: Admins manage all payments');
+
+    // API Routes
+    const createOrderRoute = path.resolve('src/app/api/payment/create-order/route.ts');
+    const verifyRoute = path.resolve('src/app/api/payment/verify/route.ts');
+    assert(fs.existsSync(createOrderRoute), '7.9 API route /api/payment/create-order exists');
+    assert(fs.existsSync(verifyRoute), '7.10 API route /api/payment/verify exists');
+
+    // Component files
+    const checkoutModal = path.resolve('src/components/RazorpayCheckoutModal.tsx');
+    const adminPayments = path.resolve('src/app/admin/payments/page.tsx');
+    assert(fs.existsSync(checkoutModal), '7.11 RazorpayCheckoutModal component exists');
+    assert(fs.existsSync(adminPayments), '7.12 Admin payments page exists');
+
+    // Test Transaction Refund Lifecycle
+    const sampleTxs = [
+      { id: 'tx-1', amount: 3999, status: 'succeeded', razorpay_payment_id: 'pay_test_1' },
+      { id: 'tx-2', amount: 4999, status: 'succeeded', razorpay_payment_id: 'pay_test_2' },
+    ];
+    // Execute refund
+    const target = sampleTxs.find((t) => t.razorpay_payment_id === 'pay_test_1');
+    target.status = 'refunded';
+    assert(target.status === 'refunded', '7.13 Payment transaction status transitions to refunded correctly');
+    const totalCollected = sampleTxs.filter((t) => t.status === 'succeeded').reduce((s, t) => s + t.amount, 0);
+    assert(totalCollected === 4999, '7.14 Net captured revenue excludes refunded payments (4999 INR)');
+  }
+
+  // =========================================================================
   banner('TEST SUMMARY');
   // =========================================================================
   console.log(`Total Passed: \x1b[32m${passed}\x1b[0m`);

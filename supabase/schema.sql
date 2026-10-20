@@ -458,3 +458,49 @@ CREATE POLICY "Admins can view audit logs"
   ON public.audit_logs FOR SELECT
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
+-- ==============================================================================
+-- RAZORPAY PAYMENT GATEWAY & FINANCIAL AUDIT LEDGER
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.payments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  amount INTEGER NOT NULL CHECK (amount > 0),
+  currency TEXT DEFAULT 'INR' NOT NULL,
+  status TEXT DEFAULT 'created' NOT NULL CHECK (
+    status IN ('created', 'processing', 'succeeded', 'failed', 'refunded')
+  ),
+  item_type TEXT NOT NULL CHECK (
+    item_type IN ('program', 'membership', 'coaching_session')
+  ),
+  item_name TEXT NOT NULL,
+  razorpay_order_id TEXT UNIQUE,
+  razorpay_payment_id TEXT UNIQUE,
+  razorpay_signature TEXT,
+  payment_method TEXT,
+  error_reason TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_payments_user_id ON public.payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_rzp_order ON public.payments(razorpay_order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_rzp_payment ON public.payments(razorpay_payment_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_created_at ON public.payments(created_at DESC);
+
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users view own payments"
+  ON public.payments FOR SELECT
+  USING (
+    user_id = auth.uid() OR
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY "Admins manage all payments"
+  ON public.payments FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+

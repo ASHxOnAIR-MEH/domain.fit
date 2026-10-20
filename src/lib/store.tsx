@@ -15,6 +15,8 @@ import {
   Message,
   NotificationItem,
   PaymentTransaction,
+  PaymentItemType,
+  PaymentStatus,
   BlogPost,
   UserRole,
   GlucoseLog,
@@ -29,6 +31,7 @@ import {
   FitCoinSettings,
   AuditLog,
 } from './types';
+import { RazorpayCheckoutModal } from '@/components/RazorpayCheckoutModal';
 
 // Initial Profiles (Clients, Trainers, Administrators)
 export const SEED_PROFILES: UserProfile[] = [
@@ -784,7 +787,25 @@ interface StoreContextType {
   notifications: NotificationItem[];
   markNotificationRead: (id: string) => void;
   transactions: PaymentTransaction[];
-  createPayment: (amount: number, itemName: string, itemType: 'program' | 'membership') => Promise<{ success: boolean; transactionId: string }>;
+  createPayment: (amount: number, itemName: string, itemType: PaymentItemType) => Promise<{ success: boolean; transactionId: string }>;
+  checkoutModal: {
+    isOpen: boolean;
+    amount: number;
+    itemName: string;
+    itemType: PaymentItemType;
+    onSuccessCallback?: (tx: PaymentTransaction) => void;
+    onCloseCallback?: () => void;
+  };
+  openCheckout: (params: {
+    amount: number;
+    itemName: string;
+    itemType: PaymentItemType;
+    onSuccess?: (tx: PaymentTransaction) => void;
+    onClose?: () => void;
+  }) => void;
+  closeCheckout: () => void;
+  recordPaymentTransaction: (tx: PaymentTransaction) => void;
+  refundPaymentTransaction: (razorpayPaymentId: string) => { success: boolean; error?: string };
   clientStreak: number;
   incrementStreak: () => void;
   toasts: Toast[];
@@ -1203,29 +1224,85 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
+  // RAZORPAY PAYMENT GATEWAY STATE
+  const [checkoutModal, setCheckoutModal] = useState<{
+    isOpen: boolean;
+    amount: number;
+    itemName: string;
+    itemType: PaymentItemType;
+    onSuccessCallback?: (tx: PaymentTransaction) => void;
+    onCloseCallback?: () => void;
+  }>({
+    isOpen: false,
+    amount: 0,
+    itemName: '',
+    itemType: 'program',
+  });
+
+  const openCheckout = (params: {
+    amount: number;
+    itemName: string;
+    itemType: PaymentItemType;
+    onSuccess?: (tx: PaymentTransaction) => void;
+    onClose?: () => void;
+  }) => {
+    setCheckoutModal({
+      isOpen: true,
+      amount: params.amount,
+      itemName: params.itemName,
+      itemType: params.itemType,
+      onSuccessCallback: params.onSuccess,
+      onCloseCallback: params.onClose,
+    });
+  };
+
+  const closeCheckout = () => {
+    if (checkoutModal.onCloseCallback) {
+      checkoutModal.onCloseCallback();
+    }
+    setCheckoutModal((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const recordPaymentTransaction = (tx: PaymentTransaction) => {
+    setTransactions((prev) => [tx, ...prev]);
+    addToast(`Payment of ₹${tx.amount.toLocaleString('en-IN')} confirmed via ${tx.payment_method}!`, 'success');
+  };
+
+  const refundPaymentTransaction = (razorpayPaymentId: string) => {
+    const tx = transactions.find((t) => t.razorpay_payment_id === razorpayPaymentId);
+    if (!tx) return { success: false, error: 'Transaction not found' };
+    if (tx.status === 'refunded') return { success: false, error: 'Transaction already refunded' };
+
+    setTransactions((prev) =>
+      prev.map((t) =>
+        t.razorpay_payment_id === razorpayPaymentId
+          ? { ...t, status: 'refunded', error_reason: 'Refunded by administrator' }
+          : t
+      )
+    );
+    addToast(`Refund of ₹${tx.amount.toLocaleString('en-IN')} processed for ${razorpayPaymentId}.`, 'info');
+    return { success: true };
+  };
+
   const createPayment = async (
     amount: number,
     itemName: string,
-    itemType: 'program' | 'membership'
+    itemType: PaymentItemType
   ): Promise<{ success: boolean; transactionId: string }> => {
-    const txId = `pay_med_test_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-    const newTx: PaymentTransaction = {
-      id: `tx-${Date.now()}`,
-      user_id: currentUser.id,
-      user_name: currentUser.full_name,
-      amount,
-      currency: 'INR',
-      status: 'succeeded',
-      item_type: itemType,
-      item_name: itemName,
-      payment_method: 'Razorpay Test Mode',
-      razorpay_payment_id: txId,
-      created_at: new Date().toISOString(),
-    };
-
-    setTransactions((prev) => [newTx, ...prev]);
-    addToast(`Payment of ₹${amount.toLocaleString()} confirmed via Razorpay Test!`, 'success');
-    return { success: true, transactionId: txId };
+    return new Promise((resolve) => {
+      openCheckout({
+        amount,
+        itemName,
+        itemType,
+        onSuccess: (tx) => {
+          recordPaymentTransaction(tx);
+          resolve({ success: true, transactionId: tx.razorpay_payment_id });
+        },
+        onClose: () => {
+          resolve({ success: false, transactionId: '' });
+        },
+      });
+    });
   };
 
   const incrementStreak = () => {
@@ -1949,6 +2026,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         markNotificationRead,
         transactions,
         createPayment,
+        checkoutModal,
+        openCheckout,
+        closeCheckout,
+        recordPaymentTransaction,
+        refundPaymentTransaction,
         clientStreak: clientProfile.streak_days,
         incrementStreak,
         toasts,
@@ -1983,6 +2065,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }}
     >
       {children}
+      <RazorpayCheckoutModal
+        isOpen={checkoutModal.isOpen}
+        onClose={closeCheckout}
+        amount={checkoutModal.amount}
+        itemName={checkoutModal.itemName}
+        itemType={checkoutModal.itemType}
+        userName={currentUser.full_name}
+        userEmail={currentUser.email}
+        onSuccess={(tx) => {
+          if (checkoutModal.onSuccessCallback) {
+            checkoutModal.onSuccessCallback(tx);
+          }
+        }}
+      />
       <div
         style={{
           position: 'fixed',
